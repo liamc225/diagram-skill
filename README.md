@@ -8,7 +8,7 @@ A Claude Code command that reads your code and generates Mermaid diagrams. Built
 
 ## Demo
 
-Running `/diagram` on a Python flight deal tracker:
+Running `/diagram` on a Python flight deal tracker I built:
 
 ```mermaid
 graph TD
