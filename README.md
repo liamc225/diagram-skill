@@ -8,9 +8,7 @@ A Claude Code command that reads your code and generates Mermaid diagrams. Built
 
 ## Demo
 
-```
-> /diagram
-```
+Running `/diagram` on a Python flight deal tracker:
 
 ```mermaid
 graph TD
@@ -60,21 +58,38 @@ mkdir -p .claude/commands
 cp diagram-skill/diagram.md .claude/commands/diagram.md
 ```
 
+## How it works
+
+1. `cd` into any project and run `/diagram`
+2. Claude reads your source files — entry points, configs, imports, API calls
+3. It picks the best diagram type for what it finds (or you can specify one)
+4. Outputs a color-coded Mermaid diagram capped at 8-12 nodes
+5. Saves `DIAGRAM.md` to the project root
+6. Opens a live preview in [mermaid.live](https://mermaid.live) where you can edit and export PNG/SVG
+
+The command is a single markdown file — no dependencies, no scripts, no API keys. It works by giving Claude structured instructions for how to analyze code and produce diagrams.
+
 ## Usage
 
 ```bash
 /diagram                        # auto-detect best diagram type
 /diagram flow                   # flowchart with decision points
-/diagram sequence               # request lifecycle
-/diagram architecture           # system overview
-/diagram flow src/pipeline      # scope to a directory
+/diagram sequence               # request lifecycle (API calls, webhooks)
+/diagram architecture           # system overview with external services
+/diagram erd                    # database schema from models
+/diagram flow src/pipeline      # scope to a specific directory
 ```
 
-Saves `DIAGRAM.md` to the project root and opens a live preview in [mermaid.live](https://mermaid.live).
+Works best on:
+- Python scripts and automation pipelines
+- n8n/Make/Zapier-style orchestrations
+- Cron jobs and scheduled tasks
+- API integrations with external services
+- Next.js / Express apps with clear route structures
 
 ## Examples
 
-See [examples/](./examples/) for more generated diagrams.
+See [examples/](./examples/) for diagrams generated from real projects.
 
 ## License
 
