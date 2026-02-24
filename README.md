@@ -1,44 +1,61 @@
-# /diagram — Claude Code Architecture Diagram Generator
+# /diagram
 
-Generate Mermaid diagrams from any codebase with a single command. Claude reads your actual code and produces accurate architecture, flow, ERD, sequence, dependency, and class diagrams.
+A Claude Code command that reads your code and generates Mermaid diagrams. Built for visualizing scripts, automations, and pipelines.
 
-![Claude Code](https://img.shields.io/badge/Claude_Code-skill-blueviolet)
+![Claude Code](https://img.shields.io/badge/Claude_Code-command-blueviolet)
 ![Mermaid](https://img.shields.io/badge/output-Mermaid-ff69b4)
 ![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
 ## Demo
 
 ```
-> /diagram architecture
-
-Based on route handlers + Prisma schema + service layer, generating an architecture diagram.
+> /diagram
 ```
 
 ```mermaid
-graph TB
-    subgraph "Client"
-        Browser[Next.js Frontend]
+graph TD
+    Cron(("macOS launchd<br/>daily @ 8am"))
+
+    subgraph FlightTracker["flight-tracker"]
+        Checker["flight_checker.py<br/>Orchestrator"]
+        DealEngine["Deal Detection<br/>threshold + rolling median"]
+        History[("price_history.json")]
+        Notifier["notifier.py<br/>HTML email builder"]
     end
-    subgraph "API Layer"
-        Routes[API Routes] -->|Prisma| DB[(PostgreSQL)]
-        Routes -->|fetch| Stripe[Stripe API]
+
+    subgraph APIs["Flight Data APIs"]
+        Amadeus["Amadeus API<br/>primary"]
+        RapidAPI["RapidAPI<br/>Google Flights<br/>fallback"]
     end
-    Browser -->|REST| Routes
+
+    SMTP["Gmail SMTP"]
+    User((User))
+
+    Cron --> Checker
+    Checker -->|OAuth2 + search| Amadeus
+    Checker -.->|"fallback if empty"| RapidAPI
+    Checker --> DealEngine
+    DealEngine <-->|read/write| History
+    DealEngine -->|deals found| Notifier
+    Notifier -->|SMTP/TLS| SMTP
+    SMTP -->|email alert| User
+
+    style FlightTracker fill:#1a1a2e,stroke:#6366f1,color:#e2e8f0
+    style APIs fill:#1a1a2e,stroke:#f59e0b,color:#e2e8f0
+    style Cron fill:#22d3ee,stroke:#22d3ee,color:#0f172a
+    style User fill:#6366f1,stroke:#6366f1,color:#fff
+    style SMTP fill:#0f172a,stroke:#ef4444,color:#ef4444
+    style History fill:#0f172a,stroke:#22d3ee,color:#22d3ee
 ```
 
 ## Install
 
-### Global (all projects)
-
 ```bash
-# Clone and copy
+# Global (works in every project)
 git clone https://github.com/liamc225/diagram-skill.git
 cp diagram-skill/diagram.md ~/.claude/commands/diagram.md
-```
 
-### Per-project
-
-```bash
+# Or per-project
 mkdir -p .claude/commands
 cp diagram-skill/diagram.md .claude/commands/diagram.md
 ```
@@ -46,62 +63,18 @@ cp diagram-skill/diagram.md .claude/commands/diagram.md
 ## Usage
 
 ```bash
-# Auto-detect best diagram type
-/diagram
-
-# Specify a type
-/diagram architecture
-/diagram erd
-/diagram flow
-/diagram sequence
-/diagram dependency
-/diagram class
-
-# Scope to a directory or feature
-/diagram flow src/auth
-/diagram sequence checkout
-/diagram erd prisma/schema.prisma
+/diagram                        # auto-detect best diagram type
+/diagram flow                   # flowchart with decision points
+/diagram sequence               # request lifecycle
+/diagram architecture           # system overview
+/diagram flow src/pipeline      # scope to a directory
 ```
 
-## Diagram Types
-
-| Type | Best For | Detects From |
-|------|----------|-------------|
-| `architecture` | System overview, services, data flow | Multiple services, docker-compose, API routes |
-| `erd` | Database schema visualization | ORM models, Prisma, migrations |
-| `flow` | Feature logic, state machines | Complex conditionals, multi-step processes |
-| `sequence` | Request lifecycle, API interactions | Route handlers calling multiple services |
-| `dependency` | Module relationships, circular deps | Import/require patterns |
-| `class` | OOP structure, inheritance | Class-heavy codebases |
-
-## How It Works
-
-This is a zero-dependency Claude Code command. No external APIs, no scripts — just a structured prompt that teaches Claude to:
-
-1. **Recon** — scan project structure, read config files, identify the tech stack
-2. **Detect** — choose the best diagram type based on codebase signals (or use what you specified)
-3. **Analyze** — read actual source files to map components, relationships, and data flow
-4. **Generate** — output valid Mermaid syntax following diagramming best practices
-5. **Save** — write `DIAGRAM.md` to your project root
-6. **Preview** — auto-opens [mermaid.live](https://mermaid.live) with your diagram pre-loaded for instant editing and export
-
-## Viewing Diagrams
-
-After running `/diagram`, a live preview opens automatically in your browser via mermaid.live. From there you can:
-
-- Edit the diagram visually
-- Export as PNG or SVG
-- Share a link
-
-Your diagram is also saved as `DIAGRAM.md` which GitHub renders natively — just push it.
+Saves `DIAGRAM.md` to the project root and opens a live preview in [mermaid.live](https://mermaid.live).
 
 ## Examples
 
-See the [examples/](./examples/) directory for real diagrams generated from open-source projects.
-
-## Contributing
-
-PRs welcome. Ideas for new diagram types, better detection heuristics, or improved Mermaid output are all fair game.
+See [examples/](./examples/) for more generated diagrams.
 
 ## License
 

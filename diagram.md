@@ -5,98 +5,57 @@ allowed-tools: [Read, Glob, Grep, Bash, Write]
 
 # Codebase Diagram Generator
 
-You are an expert software architect generating Mermaid diagrams from real codebases. Analyze the code structure and produce clear, accurate diagrams.
+You generate Mermaid diagrams from real codebases — especially scripts, automations, and pipelines. Read the code first, then diagram it.
 
 ## Arguments
 
-Parse `$ARGUMENTS` using these rules:
+Parse `$ARGUMENTS`:
 
-- **Type** (optional, first word): `architecture` | `flow` | `sequence` | `erd` | `dependency` | `class`
-- **Scope** (optional, after type): a file path, directory, or feature name to focus on
-- **Default**: If no arguments, auto-detect the most useful diagram type
+- **Type** (optional): `architecture` | `flow` | `sequence` | `erd` | `dependency`
+- **Scope** (optional): a file path, directory, or feature name
+- **Default**: auto-detect the best type
 
-Examples:
-- `/diagram` → auto-detect best diagram type for the whole project
-- `/diagram architecture` → high-level component/service diagram
-- `/diagram flow src/auth` → flowchart of the auth module
-- `/diagram erd` → entity-relationship diagram from models/schema
-- `/diagram sequence checkout` → sequence diagram of the checkout feature
-- `/diagram dependency` → module/package dependency graph
+## Step 1: Read the code
 
-## Step 1: Reconnaissance
+1. `ls` the project root
+2. Read config files (`package.json`, `pyproject.toml`, `requirements.txt`, etc.)
+3. Use `Glob` to find entry points, route handlers, models, and scripts
+4. Read `CLAUDE.md` or `README.md` if they exist
+5. Read the actual source files — do NOT guess structure
 
-Before generating anything, understand the codebase:
+## Step 2: Pick a diagram type
 
-1. Run `ls` on the project root to see the top-level structure
-2. Read the `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, or equivalent to understand the tech stack
-3. Use `Glob` to find key structural files:
-   - Entry points (`main.*`, `index.*`, `app.*`, `server.*`)
-   - Route definitions, API handlers
-   - Models, schemas, migrations
-   - Config files
-4. Read `CLAUDE.md` or `README.md` if they exist for architectural context
+If none was specified, choose based on what you found. Default to `architecture` for most projects. Use `flow` if there's a clear multi-step pipeline with branching. Use `sequence` for request/response lifecycles. Use `erd` if there's a database schema.
 
-## Step 2: Type Detection
+## Step 3: Generate the diagram
 
-If no diagram type was specified, choose based on what you found:
+Output valid Mermaid syntax in a fenced code block.
 
-| Codebase Signal | Best Diagram Type |
-|---|---|
-| Multiple services, microservices, docker-compose | `architecture` |
-| ORM models, Prisma schema, migrations, database files | `erd` |
-| Complex multi-step user flows, state machines | `flow` |
-| API routes with multiple service calls | `sequence` |
-| Many packages/modules with imports between them | `dependency` |
-| Class-heavy OOP codebase | `class` |
+### Quality rules
 
-Announce your choice: "Based on [signal], generating a **[type]** diagram."
+**If someone can't understand it in 5 seconds, it has too many nodes.**
 
-## Step 3: Deep Analysis
+1. **8-12 nodes max** — collapse details into parent components. Show the pipeline, not every function.
+2. **One zoom level** — don't mix infrastructure ("PostgreSQL") with implementation details ("bcrypt verify").
+3. **Vertical flow (TD)** — top-to-bottom reads better than horizontal sprawl.
+4. **Color everything** — use Mermaid `style` directives with a dark palette (dark fills, bright accent strokes). Color-code subgraphs by concern.
+5. **Shape matters** — `((circle))` for triggers/actors, `[(cylinder)]` for data stores, `[rectangle]` for services, `{diamond}` for decisions.
+6. **Label edges only when useful** — "fallback if empty" is useful. "REST" between a frontend and API is noise.
+7. **Dashed lines for optional/fallback paths** — use `-.->` for fallback or conditional connections.
 
-Read the actual source files relevant to your chosen diagram type. Do NOT guess — read the code.
+### Templates
 
-### For `architecture`:
-- Identify distinct components/services/modules
-- Map communication patterns (HTTP, events, queues, DB)
-- Note external services (APIs, databases, caches)
-
-### For `flow`:
-- Trace the execution path through the scoped feature
-- Identify decision points, loops, error paths
-- Map state transitions
-
-### For `sequence`:
-- Identify actors (user, frontend, API, services, DB)
-- Trace the request/response lifecycle
-- Include error/alternative paths
-
-### For `erd`:
-- Read ALL model/schema files
-- Map relationships (1:1, 1:N, N:M)
-- Include key fields, types, and constraints
-
-### For `dependency`:
-- Map import/require statements between modules
-- Identify circular dependencies
-- Group by package/directory
-
-### For `class`:
-- Read class definitions, inheritance, interfaces
-- Map method signatures and key properties
-- Show composition and dependency injection
-
-## Step 4: Generate Diagram
-
-Output a valid Mermaid diagram inside a fenced code block.
-
-### Diagram Templates
-
-**Architecture:**
+**Architecture (default):**
 ```mermaid
-graph TB
-    subgraph "Layer Name"
-        A[Component] -->|protocol| B[Component]
+graph TD
+    Trigger(("Trigger"))
+    subgraph App["App Name"]
+        A["Component"] --> B["Component"]
     end
+    External["External Service"]
+    Trigger --> A
+    B --> External
+    style App fill:#1a1a2e,stroke:#6366f1,color:#e2e8f0
 ```
 
 **Flow:**
@@ -111,7 +70,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     actor User
-    User->>+API: POST /endpoint
+    User->>+API: request
     API->>+DB: query
     DB-->>-API: result
     API-->>-User: response
@@ -121,52 +80,14 @@ sequenceDiagram
 ```mermaid
 erDiagram
     USER ||--o{ ORDER : places
-    USER {
-        int id PK
-        string email
-        string name
-    }
+    USER { int id PK }
 ```
 
-**Dependency:**
-```mermaid
-graph LR
-    subgraph "Package"
-        A[module] --> B[module]
-    end
-```
+## Step 4: Save & preview
 
-**Class:**
-```mermaid
-classDiagram
-    class ClassName {
-        +type property
-        +returnType method()
-    }
-    ClassName --|> ParentClass
-```
+1. Save to `DIAGRAM.md` in the project root with a title, one-line description, the Mermaid block, and a footer: `Generated by [diagram-skill](https://github.com/liamc225/diagram-skill)`
 
-### Diagram Quality Rules
-
-**The #1 rule: If someone can't understand the diagram in 5 seconds, it has too many nodes.**
-
-1. **8-12 nodes max for architecture diagrams** — this is a hard limit. Collapse implementation details (auth strategies, ORMs, hashing algorithms) into their parent component. A viewer needs the story, not the source code.
-2. **One level of detail** — pick a zoom level and stay consistent. Don't mix "PostgreSQL" (infrastructure) with "bcrypt verify" (implementation detail) in the same diagram.
-3. **Use visual hierarchy** — add `style` directives with color to distinguish groups (e.g., internal vs external, data vs compute). Use `((circle))` for actors, `[(cylinder)]` for databases, `[rectangle]` for services.
-4. **Prefer vertical flow (TD)** — top-to-bottom reads more naturally than left-to-right for most architectures. Horizontal sprawl kills readability.
-5. **Label edges sparingly** — only annotate edges when the protocol/pattern isn't obvious. "REST" between a frontend and API is noise. "hourly fetch" between a sync job and an external API is useful.
-6. **Group with intent** — subgraphs should represent deployment boundaries, team ownership, or trust boundaries — not just "things that are related."
-7. **Use color** — add Mermaid `style` directives to color-code subgraphs and key nodes. Use a dark theme palette (dark backgrounds, bright accent strokes) for visual appeal.
-
-## Step 5: Save & Preview
-
-1. Save the diagram to `DIAGRAM.md` in the project root with:
-   - A title (`# Architecture Diagram` or similar)
-   - Brief description of what the diagram shows
-   - The Mermaid code block
-   - A "Generated by [diagram-skill](https://github.com/liamc225/diagram-skill)" footer
-
-2. **Auto-open a live preview.** Use Node.js to pako-compress the diagram state and open mermaid.live:
+2. Open a live preview:
 
    ```bash
    node -e "
@@ -182,12 +103,6 @@ classDiagram
    " && open "$(cat /tmp/mermaid_url.txt)"
    ```
 
-   If Node.js is not available, tell the user to paste the Mermaid code into https://mermaid.live manually.
+   If Node.js is not available, tell the user to paste the code into https://mermaid.live.
 
-   Run this command using Bash after saving DIAGRAM.md. This opens a live, editable preview with zero dependencies.
-
-3. Tell the user:
-   - What type of diagram was generated and why
-   - Key architectural insights you noticed while analyzing
-   - The preview should be open in their browser — they can edit, export PNG/SVG, or share the link
-   - Suggest other diagram types that might be useful for this codebase
+3. Tell the user what was generated and any architectural insights you noticed.
