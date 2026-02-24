@@ -82,7 +82,6 @@ The command is a single markdown file — no dependencies, no scripts, no API ke
 
 Works best on:
 - Python scripts and automation pipelines
-- n8n/Make/Zapier-style orchestrations
 - Cron jobs and scheduled tasks
 - API integrations with external services
 - Next.js / Express apps with clear route structures
