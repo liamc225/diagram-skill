@@ -50,12 +50,12 @@ graph TD
 
 ```bash
 # Global (works in every project)
+curl -o ~/.claude/commands/diagram.md \
+  https://raw.githubusercontent.com/liamc225/diagram-skill/main/diagram.md
+
+# Or clone the repo
 git clone https://github.com/liamc225/diagram-skill.git
 cp diagram-skill/diagram.md ~/.claude/commands/diagram.md
-
-# Or per-project
-mkdir -p .claude/commands
-cp diagram-skill/diagram.md .claude/commands/diagram.md
 ```
 
 ## How it works
@@ -73,11 +73,11 @@ The command is a single markdown file — no dependencies, no scripts, no API ke
 
 ```bash
 /diagram                        # auto-detect best diagram type
+/diagram architecture           # system overview with external services
 /diagram flow                   # flowchart with decision points
 /diagram sequence               # request lifecycle (API calls, webhooks)
-/diagram architecture           # system overview with external services
 /diagram erd                    # database schema from models
-/diagram flow src/pipeline      # scope to a specific directory
+/diagram architecture src/api   # scope to a specific directory
 ```
 
 Works best on:
